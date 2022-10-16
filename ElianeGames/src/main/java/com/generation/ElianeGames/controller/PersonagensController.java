@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.generation.ElianeGames.model.Personagens;
+import com.generation.ElianeGames.repository.ClassesRepository;
 import com.generation.ElianeGames.repository.PersonagensRepository;
 
 @RestController
@@ -30,6 +31,9 @@ public class PersonagensController {
 	
 	@Autowired
 	private PersonagensRepository personagensRepository;
+	
+	@Autowired
+	private ClassesRepository classesRepository;
 	
 	@GetMapping //http://localhost:8080/personagens
 	public ResponseEntity<List<Personagens>> getAll()
@@ -53,18 +57,25 @@ public class PersonagensController {
 	@PostMapping   //http://localhost:8080/personagens
 	public ResponseEntity<Personagens> post(@Valid @RequestBody Personagens personagens) //No MySQL >> INSERT INTO TB_PERSONAGENS(NOME,FORCA,ATAQUE,DEFESA,INTELIGENCIA)VALUES("SAMYMASTER",10,700,2000,9)
 	{
+		if(classesRepository.existsById(personagens.getClasses().getId()))
 		return ResponseEntity.status(HttpStatus.CREATED)
 				.body(personagensRepository.save(personagens));
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
 	}
 	
 	@PutMapping  //http://localhost:8080/personagens
 	public ResponseEntity<Personagens> put(@Valid @RequestBody Personagens personagens) 
 	//o MySQL, seria o equivalente a instrução: UPDATE tb_postagens SET titulo = "titulo", texto = "texto",	data = CURRENT_TIMESTAMP() WHERE id = id; 
 	{ //pesquisar por Id que estará no corpo da requisição
-		return personagensRepository.findById(personagens.getId())
-				.map(resposta -> ResponseEntity.status(HttpStatus.OK)
-				.body(personagensRepository.save(personagens)))
-				.orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());			
+		if(personagensRepository.existsById(personagens.getId()))
+		{
+			if(classesRepository.existsById(personagens.getClasses().getId()))
+				return ResponseEntity.status(HttpStatus.OK)
+					.body(personagensRepository.save(personagens));
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+		}
+		
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).build();			
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
